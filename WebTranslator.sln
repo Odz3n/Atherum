@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37328.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebTranslator", "WebTranslator\WebTranslator.csproj", "{56EEF7AF-266E-4945-9423-A45D542BCAC0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56EEF7AF-266E-4945-9423-A45D542BCAC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56EEF7AF-266E-4945-9423-A45D542BCAC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56EEF7AF-266E-4945-9423-A45D542BCAC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56EEF7AF-266E-4945-9423-A45D542BCAC0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F9C5C2CF-2B78-4B8D-A545-8645DCCA9EBD}
+	EndGlobalSection
+EndGlobal
