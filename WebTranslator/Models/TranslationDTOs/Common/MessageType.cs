@@ -39,6 +39,8 @@
         // System
         Info,
         Warning,
-        Success
+        Success,
+
+        Saving
     }
 }

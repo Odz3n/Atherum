@@ -1,6 +1,8 @@
-﻿using WebTranslator.Models.TranslationDTOs.Common;
+﻿using WebTranslator.Models.Status;
+using WebTranslator.Models.TranslationDTOs.Common;
 using WebTranslator.Models.TranslationDTOs.ImageTranslation;
 using WebTranslator.Models.TranslationDTOs.TextTranslation;
+using WebTranslator.Models.TranslationDTOs.Vision;
 
 namespace WebTranslator.Services.Status
 {
@@ -15,25 +17,21 @@ namespace WebTranslator.Services.Status
             string? sessionId = null);
 
         Task SendStatusAsync(
-            // general params
+            StatusPayload payload);
+
+        Task SendAnalysisStatusAsync(
             MessageType type,
             string message,
-            string? originalText = null,
             string? sessionId = null,
-            string? translatedText = null,
-            string? detectedLanguage = null,
-            double? detectedLanguageScore = null,
-            List<string>? targetLanguages = null,
-            List<TranslationDto>? allTranslations = null,
-            double? progress = null,
-            bool isClearing = false,
-            bool isError = false,
-            string? errorDetails = null,
-            // Image specific params
-            int ocrProgress = 0,
-            double ocrConfidence = 0,
+            int progress = 0,
             string? imagePreview = null,
+            string? blobUri = null,
             string? extractedText = null,
-            bool isImage = false);
+            string? detectedLanguage = null,
+            List<VisionObject>? objects = null,
+            List<VisionTag>? tags = null,
+            List<TranslationDto>? translations = null,
+            string? downloadUrl = null,
+            bool isError = false);
     }
 }

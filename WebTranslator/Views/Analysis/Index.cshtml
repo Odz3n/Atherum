@@ -1,0 +1,392 @@
+﻿@{
+    ViewData["Title"] = "Image Analyzer";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/analysis.css" />
+}
+
+<div class="analysis-page">
+    <div class="analysis-container">
+        <header class="analysis-header">
+            <div class="analysis-icon">
+                <span>🔍</span>
+            </div>
+            <div>
+                <h1>Image Analyzer</h1>
+                <p>Analyze images with AI — detect objects, extract text, and translate</p>
+            </div>
+        </header>
+
+        <main class="analysis-card">
+            <section class="language-selection" aria-label="Language selection">
+                <div class="language-group">
+                    <label for="fromLanguage">From Language</label>
+                    <select id="fromLanguage" class="language-select">
+                        <option value="auto">Auto detect</option>
+                        <option value="en">English</option>
+                        <option value="ru">Russian</option>
+                        <option value="uk">Ukrainian</option>
+                        <option value="bg">Bulgarian</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="es">Spanish</option>
+                    </select>
+                </div>
+
+                <div class="language-group">
+                    <label>Translate to</label>
+                    <div class="language-checkboxes">
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="en" checked>
+                            English
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="ru">
+                            Russian
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="uk">
+                            Ukrainian
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="bg">
+                            Bulgarian
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="de">
+                            German
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="fr">
+                            French
+                        </label>
+                        <label>
+                            <input type="checkbox" name="toLanguages" value="es">
+                            Spanish
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="analysis-options" aria-label="Analysis options">
+                <div class="options-grid">
+                    <div class="option-group">
+                        <label class="option-label">Analysis Features</label>
+
+                        <div class="feature-checkboxes">
+                            <label class="feature-item">
+                                <input type="checkbox" id="featureOcr" checked>
+                                <span>📝 OCR (Text)</span>
+                            </label>
+
+                            <label class="feature-item">
+                                <input type="checkbox" id="featureObjects" checked>
+                                <span>📦 Objects</span>
+                            </label>
+
+                            <label class="feature-item">
+                                <input type="checkbox" id="featureTags" checked>
+                                <span>🏷️ Tags</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">Processing Options</label>
+
+                        <div class="process-checkboxes">
+                            <label class="process-item">
+                                <input type="checkbox" id="processTranslateText" checked>
+                                <span>🌐 Translate text</span>
+                            </label>
+
+                            <label class="process-item">
+                                <input type="checkbox" id="processTranslateObjects" checked>
+                                <span>📦 Translate object names</span>
+                            </label>
+
+                            <label class="process-item">
+                                <input type="checkbox" id="processTranslateTags" checked>
+                                <span>🏷️ Translate tag names</span>
+                            </label>
+
+                            <label class="process-item">
+                                <input type="checkbox" id="processSaveToBlob">
+                                <span>☁️ Save to Blob Storage</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">Quality Settings</label>
+
+                        <div class="quality-controls">
+                            <div class="quality-item">
+                                <label for="minConfidence">Min Confidence</label>
+
+                                <div class="range-wrapper">
+                                    <input type="range"
+                                           id="minConfidence"
+                                           min="0"
+                                           max="100"
+                                           value="50">
+                                    <span class="range-value"
+                                          id="confidenceValue">50%</span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <label for="maxResults">Max Results</label>
+
+                                <div class="select-wrapper">
+                                    <select id="maxResults" class="compact-select">
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="30" selected>30</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">Presets</label>
+
+                        <div class="preset-buttons">
+                            <button type="button"
+                                    class="preset-btn"
+                                    data-preset="all">
+                                🔍 All Features
+                            </button>
+
+                            <button type="button"
+                                    class="preset-btn"
+                                    data-preset="text">
+                                📝 Text Only
+                            </button>
+
+                            <button type="button"
+                                    class="preset-btn"
+                                    data-preset="objects">
+                                📦 Objects Only
+                            </button>
+
+                            <button type="button"
+                                    class="preset-btn"
+                                    data-preset="tags">
+                                🏷️ Tags Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="upload-area">
+                <div class="drop-zone"
+                     id="dropZone"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Upload image">
+                    <div class="drop-zone-content">
+                        <svg width="48"
+                             height="48"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             aria-hidden="true">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <path d="M21 15l-5-5L5 21" />
+                        </svg>
+
+                        <p>Drop your image here</p>
+                        <span>or click to browse</span>
+                    </div>
+
+                    <input type="file"
+                           id="fileInput"
+                           accept="image/*"
+                           style="display:none;">
+                </div>
+
+                <div class="file-info"
+                     id="fileInfo"
+                     style="display:none;">
+                    <span class="file-name"
+                          id="fileName"></span>
+
+                    <button type="button"
+                            class="file-remove"
+                            id="fileRemove"
+                            title="Remove file"
+                            aria-label="Remove selected file">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <button type="button"
+                    class="analyze-btn"
+                    id="analyzeBtn"
+                    disabled>
+                <span>🔍 Analyze Image</span>
+            </button>
+
+            <div id="uploadStatus"
+                 style="display:none;"
+                 role="status"
+                 aria-live="polite"></div>
+
+            <div id="analysisError"
+                 style="display:none;"
+                 role="alert"
+                 aria-live="assertive"></div>
+        </main>
+
+        <section class="analysis-results"
+                 id="analysisResults"
+                 aria-live="polite">
+
+            <div class="result-section"
+                 id="imageSection"
+                 style="display:none;">
+
+                <h3>📷 Image Analysis</h3>
+
+                <div class="image-preview-container">
+                    <img id="imagePreview"
+                         src=""
+                         alt="Selected image"
+                         style="display:none;">
+                </div>
+            </div>
+
+            <div class="result-section"
+                 id="objectsSection"
+                 style="display:none;">
+                <h3>
+                    📦 Detected Objects
+                    <span class="badge" id="objectsCount"></span>
+                </h3>
+
+                <div class="objects-grid"
+                     id="objectsContainer"></div>
+            </div>
+
+            <div class="result-section"
+                 id="tagsSection"
+                 style="display:none;">
+                <h3>
+                    🏷️ Tags
+                    <span class="badge" id="tagsCount"></span>
+                </h3>
+
+                <div class="tags-container"
+                     id="tagsContainer"></div>
+            </div>
+
+            <div class="result-section"
+                 id="extractedTextSection"
+                 style="display:none;">
+                <h3>📝 Extracted Text</h3>
+                <div class="extracted-text"
+                     id="extractedText"></div>
+            </div>
+
+            <div class="result-section"
+                 id="translationSection"
+                 style="display:none;">
+                <h3>🌐 Translation</h3>
+                <div class="translation-result"
+                     id="translationResult"></div>
+            </div>
+
+            <div class="result-section"
+                 id="detectedLanguageSection"
+                 style="display:none;">
+                <div class="detected-language">
+                    <span>🌍</span>
+                    <span>Detected: </span>
+                    <span id="detectedLanguageText"></span>
+                </div>
+            </div>
+
+            <div class="result-section blob-section"
+                 id="blobSection"
+                 style="display:none;">
+                <h3>☁️ Cloud Storage</h3>
+
+                <div class="blob-container">
+                    <div class="blob-header">
+                        <span class="blob-icon">📎</span>
+                        <span class="blob-title">File saved to Azure Blob Storage</span>
+                    </div>
+
+                    <div class="blob-content">
+                        <p id="blobInfo" class="blob-info">
+                            📎 File saved to cloud storage
+                        </p>
+
+                        <div class="blob-actions">
+                            <a id="blobLink"
+                               href="#"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="blob-link">
+                                📎 Download from cloud
+                            </a>
+
+                            <button type="button"
+                                    id="copySasUriBtn"
+                                    class="blob-copy-btn"
+                                    onclick="window.analysisClient?.copySasUri()">
+                                📋 Copy SAS URI
+                            </button>
+                        </div>
+
+                        <div class="blob-note">
+                            <small>🔒 SAS URI expires in 7 days</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-section"
+                 id="progressSection"
+                 style="display:none;">
+                <h3>⏳ Progress</h3>
+
+                <div class="progress-container">
+                    <div class="progress-track">
+                        <div class="progress-bar-fill"
+                             id="analysisProgress"
+                             style="width: 0%;">
+                        </div>
+                    </div>
+
+                    <span id="analysisProgressText">0%</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="analysis-footer">
+            <div class="connection-status"
+                 id="connectionStatus">
+                <span class="dot disconnected"></span>
+                <span>Disconnected</span>
+            </div>
+
+            <span class="session-id"
+                  id="sessionId"></span>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script src="~/js/analysis-client.js"></script>
+}

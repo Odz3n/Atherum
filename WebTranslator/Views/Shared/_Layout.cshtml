@@ -27,6 +27,9 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Ocr" asp-action="Index">OCR Translator</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Analysis" asp-action="Index">Image Analyzer</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
@@ -34,11 +37,9 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
 
     <footer class="border-top footer text-muted">
         <div class="container">
@@ -47,14 +48,17 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+
     <script src="~/js/signalr-client.js" asp-append-version="true"></script>
+
     <script src="~/js/translation-client.js" asp-append-version="true"></script>
-    <script src="~/js/ocr-client.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/ocr-client.js" asp-append-version="true"></script>
+
+    <script src="~/js/analysis-client.js" asp-append-version="true"></script>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
-
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

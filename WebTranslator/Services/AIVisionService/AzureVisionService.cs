@@ -1,86 +1,215 @@
-﻿using Azure;
-using Azure.AI.Vision.ImageAnalysis;
+﻿using Azure.AI.Vision.ImageAnalysis;
 using WebTranslator.Models.TranslationDTOs.Vision;
+using WebTranslator.Services.AIVisionService.Handlers;
 using WebTranslator.Services.Api;
 
-namespace WebTranslator.Services.AIVisionService
+namespace WebTranslator.Services.AIVisionService;
+
+public class AzureVisionService : IVisionService
 {
-    public class AzureVisionService: IVisionService
+    private readonly IApiConfiguration<AzureVisionApiConfig> _apiConfiguration;
+    private readonly ILogger<AzureVisionService> _logger;
+    private readonly IAnalysisHandlerFactory _handlerFactory;
+    private readonly ImageAnalysisClient _client;
+
+    public AzureVisionService(
+        IApiConfiguration<AzureVisionApiConfig> apiConfiguration,
+        ILogger<AzureVisionService> logger,
+        IAnalysisHandlerFactory handlerFactory)
     {
-        private readonly IApiConfiguration<AzureVisionApiConfig> _apiConfiguration;
-        private readonly ILogger<AzureVisionService> _logger;
-        private readonly ImageAnalysisClient _client;
+        _apiConfiguration = apiConfiguration;
+        _logger = logger;
+        _handlerFactory = handlerFactory;
 
-        public AzureVisionService(
-            IApiConfiguration<AzureVisionApiConfig> apiConfiguration,
-            ILogger<AzureVisionService> logger)
-        {
-            _apiConfiguration = apiConfiguration;
-            _logger = logger;
+        var apiConfig = _apiConfiguration.GetConfig();
 
-            var apiConfig = _apiConfiguration.GetConfig();
-            _client = new ImageAnalysisClient(apiConfig?.Endpoint, apiConfig?.AzureKeyCredential);
-        }
-        public async Task<OcrResult> ExtractTextAsync(byte[] imageData)
+        if (apiConfig?.Endpoint == null)
+            throw new InvalidOperationException("Azure Vision endpoint is not configured.");
+
+        if (apiConfig.AzureKeyCredential == null)
+            throw new InvalidOperationException("Azure Vision API key is not configured.");
+
+        _client = new ImageAnalysisClient(
+            apiConfig.Endpoint,
+            apiConfig.AzureKeyCredential);
+    }
+
+    public async Task<VisionAnalysisResult> AnalyzeImageAsync(
+        byte[] imageData,
+        AnalysisOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(imageData);
+
+        if (imageData.Length == 0)
+            throw new ArgumentException(
+                "Image data cannot be empty.",
+                nameof(imageData));
+
+        options ??= AnalysisOptions.Default();
+
+        try
         {
-            try
+            _logger.LogInformation(
+                "Analyzing image: {Bytes} bytes, Features: {Features}",
+                imageData.Length,
+                options.Features);
+
+            var azureResult = await GetAzureAnalysisAsync(
+                imageData,
+                options.Features);
+
+            var result = new VisionAnalysisResult
             {
-                _logger.LogInformation($"Processing image: {imageData.Length} bytes");
+                Timestamp = DateTime.UtcNow
+            };
 
-                var imageBinaryData = new BinaryData(imageData);
+            var handlers = _handlerFactory.GetHandlers(options.Features);
 
-                var result = await _client.AnalyzeAsync(
-                    imageBinaryData,
-                    VisualFeatures.Read
-                );
-
-                if (result.Value.Read == null || result.Value.Read.Blocks.Count == 0)
-                    return new OcrResult
-                    {
-                        Text = "No text found in image",
-                        Confidence = 0,
-                        Words = new List<OcrWord>()
-                    };
-
-                var extractedText = string.Join(" ", result.Value.Read.Blocks
-                    .SelectMany(b => b.Lines)
-                    .Select(l => l.Text));
-
-                var words = result.Value.Read.Blocks
-                    .SelectMany(b => b.Lines)
-                    .SelectMany(l => l.Words)
-                    .Select(w => new OcrWord
-                    {
-                        Text = w.Text,
-                        Confidence = w.Confidence,
-                        BoundingBox = new BoundingBox
-                        {
-                            X = (int)w.BoundingPolygon[0].X,
-                            Y = (int)w.BoundingPolygon[0].Y,
-                            Width = (int)(w.BoundingPolygon[2].X - w.BoundingPolygon[0].X),
-                            Height = (int)(w.BoundingPolygon[2].Y - w.BoundingPolygon[0].Y)
-                        }
-                    }).ToList();
-
-                return new OcrResult
-                {
-                    Text = extractedText,
-                    Confidence = words.Any() ? words.Average(w => w.Confidence) : 0,
-                    Words = words,
-                    WordCount = words.Count
-                };
-            }
-            catch (Exception ex)
+            foreach (var handler in handlers)
             {
-                _logger.LogError(ex, "Azure Vision OCR failed");
-                throw;
+                await handler.ProcessAsync(
+                    azureResult,
+                    result,
+                    options);
             }
+
+            _logger.LogInformation(
+                "Analysis complete: {Objects} objects, {Tags} tags, Text: {TextLength} chars",
+                result.Objects.Count,
+                result.Tags.Count,
+                result.ExtractedText?.Length ?? 0);
+
+            return result;
         }
-        public async Task<OcrResult> ExtractTextFromUrlAsync(string imageUrl)
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Image analysis failed");
+
+            throw;
+        }
+    }
+
+    public async Task<VisionAnalysisResult> AnalyzeImageFromUrlAsync(
+        string imageUrl,
+        AnalysisOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            throw new ArgumentException(
+                "Image URL cannot be empty.",
+                nameof(imageUrl));
+
+        try
+        {
+            _logger.LogInformation(
+                "Analyzing image from URL: {ImageUrl}",
+                imageUrl);
+
             using var client = new HttpClient();
+
             var imageData = await client.GetByteArrayAsync(imageUrl);
-            return await ExtractTextAsync(imageData);
+
+            return await AnalyzeImageAsync(
+                imageData,
+                options);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to analyze image from URL: {ImageUrl}",
+                imageUrl);
+
+            throw;
+        }
+    }
+
+    public async Task<OcrResult> ExtractTextAsync(byte[] imageData)
+    {
+        ArgumentNullException.ThrowIfNull(imageData);
+
+        try
+        {
+            _logger.LogInformation(
+                "Extracting text from image: {Bytes} bytes",
+                imageData.Length);
+
+            var options = AnalysisOptions.TextOnly();
+
+            var result = await AnalyzeImageAsync(
+                imageData,
+                options);
+
+            return new OcrResult
+            {
+                Text = result.ExtractedText,
+                Confidence = result.Words.Count > 0
+                    ? result.Words.Average(w => w.Confidence)
+                    : 0,
+                Words = result.Words,
+                WordCount = result.Words.Count
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Text extraction failed");
+
+            throw;
+        }
+    }
+
+    public async Task<OcrResult> ExtractTextFromUrlAsync(
+        string imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            throw new ArgumentException(
+                "Image URL cannot be empty.",
+                nameof(imageUrl));
+
+        _logger.LogInformation(
+            "Extracting text from URL: {ImageUrl}",
+            imageUrl);
+
+        using var client = new HttpClient();
+
+        var imageData = await client.GetByteArrayAsync(imageUrl);
+
+        return await ExtractTextAsync(imageData);
+    }
+
+    private async Task<ImageAnalysisResult> GetAzureAnalysisAsync(
+        byte[] imageData,
+        AnalysisFeature features)
+    {
+        var binaryData = BinaryData.FromBytes(imageData);
+        var visualFeatures = GetVisualFeatures(features);
+
+        _logger.LogInformation(
+            "Calling Azure Vision API with features: {VisualFeatures}",
+            visualFeatures);
+
+        return await _client.AnalyzeAsync(
+            binaryData,
+            visualFeatures);
+    }
+
+    private static VisualFeatures GetVisualFeatures(
+        AnalysisFeature features)
+    {
+        var result = VisualFeatures.None;
+
+        if (features.HasFlag(AnalysisFeature.Read))
+            result |= VisualFeatures.Read;
+
+        if (features.HasFlag(AnalysisFeature.Objects))
+            result |= VisualFeatures.Objects;
+
+        if (features.HasFlag(AnalysisFeature.Tags))
+            result |= VisualFeatures.Tags;
+
+        return result;
     }
 }

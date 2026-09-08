@@ -66,7 +66,8 @@
         ServerError: 23,
         Info: 24,
         Warning: 25,
-        Success: 26
+        Success: 26,
+        Saving: 27
     };
 
     const MessageTypeNames = {
@@ -96,7 +97,8 @@
         23: 'ServerError',
         24: 'Info',
         25: 'Warning',
-        26: 'Success'
+        26: 'Success',
+        27: 'Saving'
     };
 
     function getLanguageName(code) {
@@ -375,6 +377,35 @@
                 updateProgress(50);
                 break;
             }
+
+            case 'Saving':
+                updateStatus('Info', '💾 ' + (data.message || 'Saving to cloud storage...'), false);
+
+                if (data.progress !== undefined) {
+                    updateProgress(data.progress);
+                }
+
+                if (data.downloadUrl || data.blobUri) {
+                    const link = document.getElementById('blobLink');
+                    if (link) {
+                        link.href = data.downloadUrl || data.blobUri;
+                        link.textContent = '📎 Download from cloud';
+                        link.style.display = 'inline-block';
+                    }
+                    const section = document.getElementById('blobSection');
+                    if (section) {
+                        section.style.display = 'block';
+                    }
+                }
+
+                if (data.imagePreview) {
+                    const preview = document.getElementById('imagePreview');
+                    if (preview) {
+                        preview.src = data.imagePreview;
+                        preview.style.display = 'block';
+                    }
+                }
+                break;
 
             case 'Translating':
                 updateStatus('Translating', '🔄 Translating...', false);
@@ -928,6 +959,42 @@
 
         window.signalRClient.onError((error) => {
             showError(error?.message || "Unknown error");
+        });
+
+        window.signalRClient.onImageTranslation((data) => {
+            try {
+                handleTranslationStatus(data);
+            } catch (e) {
+                console.error('Failed to handle image translation status', e, data);
+            }
+        });
+
+        window.signalRClient.onImageAnalysis((data) => {
+            try {
+                handleTranslationStatus(data);
+
+                console.debug('Image analysis update', data);
+
+                if (data.objects && data.objects.length > 0) {
+                    const names = data.objects.map(o => o.translatedName || o.name || '').filter(x => x).join(', ');
+                    if (elements.translationInfoFooter) {
+                        elements.translationInfoFooter.textContent = names ? `Objects: ${names}` : elements.translationInfoFooter.textContent;
+                    }
+                }
+
+                if (data.tags && data.tags.length > 0) {
+                    const tagNames = data.tags.map(t => t.translatedName || t.name || '').filter(x => x).join(', ');
+                    if (elements.translationInfo) {
+                        elements.translationInfo.textContent = elements.translationInfo.textContent + (tagNames ? ` • Tags: ${tagNames}` : '');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to handle image analysis status', e, data);
+            }
+        });
+
+        window.signalRClient.onAnalysisError((error) => {
+            showError(error?.message || 'Image analysis error');
         });
 
         window.addEventListener('signalr-reconnecting', () => {

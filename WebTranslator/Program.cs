@@ -1,11 +1,12 @@
-using Azure.Core.Extensions;
+using Azure.Storage.Blobs;
 using WebTranslator.Hubs;
 using WebTranslator.Models.TranslationDTOs.Common;
 using WebTranslator.Services.AIVisionService;
+using WebTranslator.Services.AIVisionService.Handlers;
 using WebTranslator.Services.Api;
 using WebTranslator.Services.Azure;
+using WebTranslator.Services.AzureBlobStorage;
 using WebTranslator.Services.ErrorHandling;
-using WebTranslator.Services.Routing;
 using WebTranslator.Services.Status;
 using WebTranslator.Services.TranslationService;
 using WebTranslator.Services.Validation;
@@ -23,24 +24,36 @@ namespace WebTranslator
             builder.Services.AddSignalR(options =>
             {
                 options.EnableDetailedErrors = true;
-                options.MaximumReceiveMessageSize = 102400;
+                options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             });
 
             builder.Services.AddScoped<TranslationConfig>();
             builder.Services.AddScoped<TranslationService>();
 
             builder.Services.AddScoped<IVisionService, AzureVisionService>();
+            builder.Services.AddScoped<AzureBlobStorageService>();
             builder.Services.AddScoped<ITextValidator, TextValidator>();
             builder.Services.AddScoped<IImageValidator, ImageValidator>();
 
             // xD
             builder.Services.AddScoped<IApiConfiguration<TranslationApiConfig>, AzureTranslatorApiConfiguration>();
             builder.Services.AddScoped<IApiConfiguration<AzureVisionApiConfig>, AzureVisionApiConfiguration>();
-            
+            builder.Services.AddScoped<IApiConfiguration<BlobStorageApiConfig>, AzureBlobStorageApiConfiguration>();
+
             builder.Services.AddScoped<IErrorHandler, ErrorHandler>();
             builder.Services.AddScoped<Services.Routing.IRouteBuilder, Services.Routing.AzureRouteBuilder>();
             builder.Services.AddScoped<IStatusSender, StatusSender>();
             builder.Services.AddScoped<IAzureTranslationClient, AzureTranslationClient>();
+
+            // Handlers
+            builder.Services.AddScoped<IAnalysisHandler, OcrHandler>();
+            builder.Services.AddScoped<IAnalysisHandler, ObjectsHandler>();
+            builder.Services.AddScoped<IAnalysisHandler, TagsHandler>();
+
+            // Factory
+            builder.Services.AddScoped<IAnalysisHandlerFactory, AnalysisHandlerFactory>();
 
             var app = builder.Build();
 
